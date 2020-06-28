@@ -22,6 +22,7 @@ class ViewController: UIViewController {
         buttons = (0..<4).map({ i -> PopUpButton in
             let button = PopUpButton(items: items)
             button.backgroundColor = .black
+            button.cover = .blur(.dark)
             button.layer.cornerRadius = 12
             button.currentIndex = Double(i + 1) / 4.0 > 0.5 ? 5 : 15
             button.addTarget(self, action: #selector(popUpButtonTouchUpInside), for: .valueChanged)

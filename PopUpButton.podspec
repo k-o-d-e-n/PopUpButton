@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = 'PopUpButton'
-  s.version          = '1.0'
+  s.version          = '1.1'
   s.summary          = 'A control for selecting an item from a list.'
   s.description      = <<-DESC
 "A control for selecting an item from a list. In other words, single motion `NSPopUpButton` for iOS."

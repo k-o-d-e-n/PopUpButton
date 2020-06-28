@@ -18,7 +18,7 @@ public final class PopUpButton: UIControl {
 
     public var itemsColor: UIColor?
     public var selectedItemColor: UIColor?
-    public var coverBackgroundColor: UIColor? = #colorLiteral(red: 0.07058823529, green: 0.07058823529, blue: 0.07058823529, alpha: 0.9)
+    public var cover: Cover = .color(#colorLiteral(red: 0.07058823529, green: 0.07058823529, blue: 0.07058823529, alpha: 0.9))
 
     public var anchor: Anchor = .window
     public var items: [Item] = [] {
@@ -88,9 +88,9 @@ public final class PopUpButton: UIControl {
         guard let spaceView = anchor.view(for: self) else { return false }
         guard super.beginTracking(touch, with: event) && super.becomeFirstResponder() else { return false }
 
-        let cover = UIView(frame: spaceView.bounds)
+        let (cover, content) = self.cover.build()
+        cover.frame = spaceView.bounds
         spaceView.addSubview(cover)
-        cover.backgroundColor = coverBackgroundColor
 
         let current = views[currentIndex]
         current.backgroundColor = selectedItemColor ?? tintColor
@@ -100,7 +100,7 @@ public final class PopUpButton: UIControl {
             if i != currentIndex {
                 v.backgroundColor = itemsColor ?? backgroundColor
             }
-            cover.addSubview(v)
+            content.addSubview(v)
         })
         self.coverView = cover
 
@@ -189,6 +189,23 @@ extension PopUpButton {
             switch self {
             case .window: return view.window
             case .superview: return view.superview
+            }
+        }
+    }
+
+    public enum Cover {
+        case color(UIColor?)
+        case blur(UIBlurEffect.Style)
+
+        func build() -> (view: UIView, contentView: UIView) {
+            switch self {
+            case .color(let color):
+                let view = UIView()
+                view.backgroundColor = color
+                return (view, view)
+            case .blur(let style):
+                let view = UIVisualEffectView(effect: UIBlurEffect(style: style))
+                return (view, view.contentView)
             }
         }
     }

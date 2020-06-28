@@ -1,5 +1,5 @@
 PODS:
-  - PopUpButton (1.0)
+  - PopUpButton (1.1)
 
 DEPENDENCIES:
   - PopUpButton (from `../`)
@@ -9,8 +9,8 @@ EXTERNAL SOURCES:
     :path: "../"
 
 SPEC CHECKSUMS:
-  PopUpButton: 1769a8faf9471c97f2ab08e5505204dec96bf362
+  PopUpButton: 514d10349d0907b9ad8d60f8910d49ab4ba7ae59
 
-PODFILE CHECKSUM: 94c6f2f9fa5f0b0f0753affc63203fb233199fc8
+PODFILE CHECKSUM: db87d1a7ac8a1795df5fe1bdc80f8349ae082ee7
 
 COCOAPODS: 1.9.1

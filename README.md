@@ -9,7 +9,7 @@ public final class PopUpButton : UIControl {
 
     public var selectedItemColor: UIColor? { get set }
 
-    public var coverBackgroundColor: UIColor? { get set }
+    public var cover: Cover { get set }
 
     public var anchor: Anchor { get set }
 
@@ -24,6 +24,11 @@ public final class PopUpButton : UIControl {
     public enum Anchor {
         case window
         case superview
+    }
+    
+    public enum Cover {
+        case color(UIColor?)
+        case blur(UIBlurEffect.Style)
     }
 }
 
