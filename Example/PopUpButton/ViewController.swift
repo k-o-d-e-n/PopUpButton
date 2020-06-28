@@ -7,18 +7,40 @@
 //
 
 import UIKit
+import PopUpButton
 
 class ViewController: UIViewController {
+    var buttons: [PopUpButton] = []
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Do any additional setup after loading the view, typically from a nib.
+
+        let items: [PopUpButton.Item] = (0..<20).map { i in
+            PopUpButton.Item(title: "\(Character(Unicode.Scalar(0x1F600 + i)!)) Item \(i)")
+        }
+
+        buttons = (0..<4).map({ i -> PopUpButton in
+            let button = PopUpButton(items: items)
+            button.backgroundColor = .black
+            button.layer.cornerRadius = 12
+            button.currentIndex = Double(i + 1) / 4.0 > 0.5 ? 5 : 15
+            button.addTarget(self, action: #selector(popUpButtonTouchUpInside), for: .valueChanged)
+            view.addSubview(button)
+            return button
+        })
     }
 
-    override func didReceiveMemoryWarning() {
-        super.didReceiveMemoryWarning()
-        // Dispose of any resources that can be recreated.
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+
+        buttons[0].frame = CGRect(x: 50, y: 100, width: 130, height: 44)
+        buttons[1].frame = CGRect(x: view.bounds.width - 50 - 130, y: 100, width: 130, height: 44)
+        buttons[2].frame = CGRect(x: 50, y: view.bounds.height - 100 - 44, width: 130, height: 44)
+        buttons[3].frame = CGRect(x: view.bounds.width - 50 - 130, y: view.bounds.height - 100 - 44, width: 130, height: 44)
     }
 
+    @objc func popUpButtonTouchUpInside(_ button: PopUpButton) {
+        print("Selected item at index", button.currentIndex)
+    }
 }
 
