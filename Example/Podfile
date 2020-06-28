@@ -1,0 +1,11 @@
+use_frameworks!
+
+target 'PopUpButton_Example' do
+  pod 'PopUpButton', :path => '../'
+
+  target 'PopUpButton_Tests' do
+    inherit! :search_paths
+
+    
+  end
+end
