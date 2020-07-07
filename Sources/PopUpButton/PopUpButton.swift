@@ -184,11 +184,29 @@ extension PopUpButton {
     public enum Anchor {
         case window
         case superview
+        case view(View)
+        case viewController(ViewController)
+
+        public static func view(_ view: UIView) -> Anchor {
+            .view(View(view: view))
+        }
+        public static func viewController(_ viewController: UIViewController) -> Anchor {
+            .viewController(ViewController(controller: viewController))
+        }
+
+        public struct View {
+            weak var view: UIView?
+        }
+        public struct ViewController {
+            weak var controller: UIViewController?
+        }
 
         func view(for view: UIView) -> UIView? {
             switch self {
             case .window: return view.window
             case .superview: return view.superview
+            case .view(let custom): return custom.view
+            case .viewController(let custom): return custom.controller?.view
             }
         }
     }

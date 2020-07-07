@@ -14,6 +14,7 @@ class ViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        view.backgroundColor = .white
 
         let items: [PopUpButton.Item] = (0..<20).map { i in
             PopUpButton.Item(title: "\(Character(Unicode.Scalar(0x1F600 + i)!)) Item \(i)")
@@ -23,6 +24,9 @@ class ViewController: UIViewController {
             let button = PopUpButton(items: items)
             button.backgroundColor = .black
             button.cover = .blur(.dark)
+            if UIDevice.current.userInterfaceIdiom == .pad {
+                button.anchor = .viewController(navigationController!)
+            }
             button.layer.cornerRadius = 12
             button.currentIndex = Double(i + 1) / 4.0 > 0.5 ? 5 : 15
             button.addTarget(self, action: #selector(popUpButtonTouchUpInside), for: .valueChanged)

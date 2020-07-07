@@ -13,9 +13,21 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     var window: UIWindow?
 
-
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        let window = UIWindow(frame: UIScreen.main.bounds)
+        let viewController = ViewController()
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            let split = UISplitViewController()
+            let master = UITableViewController()
+            master.title = "Menu"
+            viewController.title = "Content"
+            split.viewControllers = [UINavigationController(rootViewController: master), UINavigationController(rootViewController: viewController)]
+            window.rootViewController = split
+        } else {
+            window.rootViewController = viewController
+        }
+        window.makeKeyAndVisible()
+        self.window = window
         return true
     }
 
@@ -41,6 +53,4 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
     }
 
-
 }
-
