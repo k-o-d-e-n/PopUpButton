@@ -1,6 +1,6 @@
 # PopUpButton
 
-A control for selecting an item from a list. In other words, single motion `NSPopUpButton` for iOS.
+A control for selecting an item from a list. In other words, single motion version of `NSPopUpButton` for iOS, and original version for Mac Catalyst.
 
 ```swift
 public final class PopUpButton : UIControl {
@@ -16,6 +16,8 @@ public final class PopUpButton : UIControl {
     public var items: [Item] { get set }
 
     public var currentIndex: Int { get set }
+    
+    public var selectionTouchInsideOnly: Bool { get set }
 
     public struct Item {
         public let title: String

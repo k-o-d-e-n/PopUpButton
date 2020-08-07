@@ -13,8 +13,46 @@ public final class PopUpButton: UIControl {
     private var coverView: UIView? {
         willSet { coverView?.removeFromSuperview() }
     }
+    private var _selectedIndex: Int? {
+        didSet {
+            guard oldValue != _selectedIndex else { return }
+            if window != nil {
+                if let old = oldValue {
+                    let oldView = views[old]
+                    if !isPresented {
+                        oldView.removeFromSuperview()
+                    } else {
+                        oldView.backgroundColor = itemsColor ?? backgroundColor
+                    }
+                }
+                if let new = _selectedIndex {
+                    let newView = views[new]
+                    if !isPresented {
+                        addSubview(newView)
+                    }
+                    newView.backgroundColor = selectedItemColor ?? tintColor
+                }
+            }
+        }
+    }
+    private var isPresented: Bool {
+        #if targetEnvironment(macCatalyst)
+        return isFirstResponder
+        #else
+        return isTracking
+        #endif
+    }
 
     public override var canBecomeFirstResponder: Bool { true }
+    #if targetEnvironment(macCatalyst)
+    public override var frame: CGRect {
+        didSet {
+            if oldValue.origin != frame.origin, isPresented {
+                layoutViews(from: convert(bounds, to: coverView), index: _selectedIndex ?? currentIndex)
+            }
+        }
+    }
+    #endif
 
     public var itemsColor: UIColor?
     public var selectedItemColor: UIColor?
@@ -33,22 +71,16 @@ public final class PopUpButton: UIControl {
     }
     public var currentIndex: Int = 0 {
         didSet {
-            guard oldValue != currentIndex else { return }
-            if window != nil {
-                let oldView = views[oldValue]
-                if !isTracking {
-                    oldView.removeFromSuperview()
-                } else {
-                    oldView.backgroundColor = itemsColor ?? backgroundColor
-                }
-                let newView = views[currentIndex]
-                if !isTracking {
-                    addSubview(newView)
-                }
-                newView.backgroundColor = selectedItemColor ?? tintColor
+            guard window != nil, views.count > 0 else { return }
+            let newView = views[currentIndex]
+            if !isPresented {
+                views[oldValue].removeFromSuperview()
+                addSubview(newView)
             }
+            newView.backgroundColor = nil
         }
     }
+    public var selectionTouchInsideOnly: Bool = false
 
     public convenience init(items: [Item], frame: CGRect = .zero) {
         precondition(items.count > 0, "Items cannot be empty")
@@ -76,9 +108,9 @@ public final class PopUpButton: UIControl {
 
     public override func layoutSubviews() {
         super.layoutSubviews()
-        if isTracking, window != nil {
-            let currentView = views[currentIndex]
-            layoutViews(from: currentView.frame)
+        if isPresented, window != nil, let index = _selectedIndex {
+            let currentView = views[index]
+            layoutViews(from: currentView.frame, index: index)
         } else if views.count > currentIndex {
             views[currentIndex].frame = bounds
         }
@@ -88,14 +120,22 @@ public final class PopUpButton: UIControl {
         guard let spaceView = anchor.view(for: self) else { return false }
         guard super.beginTracking(touch, with: event) && super.becomeFirstResponder() else { return false }
 
+        _selectedIndex = currentIndex
+
         let (cover, content) = self.cover.build()
+        #if targetEnvironment(macCatalyst)
+        let tapCover = UITapGestureRecognizer(target: self, action: #selector(_tapInCover(_:)))
+        let hoverCover = UIHoverGestureRecognizer(target: self, action: #selector(_hoverInCover(_:)))
+        cover.addGestureRecognizer(tapCover)
+        cover.addGestureRecognizer(hoverCover)
+        #endif
         cover.frame = spaceView.bounds
         spaceView.addSubview(cover)
 
         let current = views[currentIndex]
         current.backgroundColor = selectedItemColor ?? tintColor
         let anchorRect = cover.convert(current.frame, from: self)
-        layoutViews(from: anchorRect)
+        layoutViews(from: anchorRect, index: currentIndex)
         views.enumerated().forEach({ i, v in
             if i != currentIndex {
                 v.backgroundColor = itemsColor ?? backgroundColor
@@ -111,38 +151,64 @@ public final class PopUpButton: UIControl {
         super.continueTracking(touch, with: event)
         guard let cover = coverView else { return false }
         let pointInCover = convert(touch.location(in: self), to: cover)
-        guard let index = views.firstIndex(where: { $0.frame.minY < pointInCover.y && $0.frame.maxY > pointInCover.y }) else { return true }
-        currentIndex = index
+        _onTracking(in: cover, point: pointInCover)
+        return true
+    }
+
+    public override func endTracking(_ touch: UITouch?, with event: UIEvent?) {
+        super.endTracking(touch, with: event)
+        #if !targetEnvironment(macCatalyst)
+        resignFirstResponder()
+        #endif
+    }
+
+    public override func becomeFirstResponder() -> Bool { false }
+
+    @discardableResult
+    public override func resignFirstResponder() -> Bool {
+        guard super.resignFirstResponder() else { return false }
+        _onResignFirstResponder()
+        return true
+    }
+
+    private func _onTracking(in cover: UIView, point pointInCover: CGPoint) {
+        guard let index = views.firstIndex(where: { $0.frame.minY < pointInCover.y && $0.frame.maxY > pointInCover.y }) else { return }
+        let selected = views[index]
+        guard !selectionTouchInsideOnly || selected.frame.contains(pointInCover) else {
+            _selectedIndex = nil
+            return
+        }
+        _selectedIndex = index
         var nextIndex = index
         if pointInCover.y <= (frame.height + cover.safeAreaInsets.top) {
             nextIndex = max(0, index - 1)
         } else if pointInCover.y >= (cover.bounds.maxY - frame.height - cover.safeAreaInsets.bottom) {
             nextIndex = min(views.count - 1, index + 1)
         }
-        if nextIndex != currentIndex {
-            currentIndex = nextIndex
-            layoutViews(from: views[index].frame)
+        if nextIndex != _selectedIndex {
+            _selectedIndex = nextIndex
+            layoutViews(from: views[index].frame, index: nextIndex)
         }
-        return true
     }
 
-    public override func endTracking(_ touch: UITouch?, with event: UIEvent?) {
-        super.endTracking(touch, with: event)
-        super.resignFirstResponder()
+    private func _onResignFirstResponder() {
         coverView = nil
-        let current = views[currentIndex]
-        current.backgroundColor = nil
-        addSubview(current)
+        guard let newIndex = _selectedIndex, newIndex != currentIndex else {
+            let current = views[currentIndex]
+            current.backgroundColor = nil
+            addSubview(current)
+            return
+        }
+        _selectedIndex = nil
+        currentIndex = newIndex
         sendActions(for: .valueChanged)
     }
 
-    public override func becomeFirstResponder() -> Bool { false }
-
-    private func layoutViews(from rect: CGRect) {
+    private func layoutViews(from rect: CGRect, index: Int) {
         views.enumerated().forEach { i, view in
             view.frame = CGRect(
                 x: rect.minX,
-                y: rect.minY + (CGFloat(i - currentIndex) * rect.height),
+                y: rect.minY + (CGFloat(i - index) * rect.height),
                 width: rect.width, height: rect.height
             )
         }
@@ -171,6 +237,21 @@ public final class PopUpButton: UIControl {
             }
         }
     }
+
+    #if targetEnvironment(macCatalyst)
+    @objc func _tapInCover(_ gesture: UITapGestureRecognizer) {
+        defer { resignFirstResponder() }
+        guard views.count > 0 else { return }
+        let location = gesture.location(in: gesture.view)
+        guard views[0].frame.minX < location.x, views[0].frame.minY < location.y else { return }
+        guard views.last!.frame.maxX > location.x, views.last!.frame.maxY > location.y else { return }
+        _selectedIndex = Int((location.y - views[0].frame.minY) / views[0].frame.height)
+    }
+
+    @objc func _hoverInCover(_ gesture: UIHoverGestureRecognizer) {
+        _onTracking(in: gesture.view!, point: gesture.location(in: gesture.view))
+    }
+    #endif
 }
 extension PopUpButton {
     public struct Item {
@@ -220,9 +301,11 @@ extension PopUpButton {
             case .color(let color):
                 let view = UIView()
                 view.backgroundColor = color
+                view.autoresizingMask = [.flexibleHeight, .flexibleWidth]
                 return (view, view)
             case .blur(let style):
                 let view = UIVisualEffectView(effect: UIBlurEffect(style: style))
+                view.autoresizingMask = [.flexibleHeight, .flexibleWidth]
                 return (view, view.contentView)
             }
         }
